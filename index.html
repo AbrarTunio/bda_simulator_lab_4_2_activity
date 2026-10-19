@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lab 4.2 graded activity: Spark RDDs and DataFrames</title>
+<meta name="description" content="Graded activity for Lab 4.2. Each student gets personal values from their roll number.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ubuntu:ital,wght@0,300;0,400;0,500;0,700;1,400&family=Ubuntu+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+:root{
+  --bg:#FFF8F1; --ink:#1A1033; --muted:#5E5873; --rule:#EADFD6;
+  --spark:#FF5A1F; --spark-soft:#FFE7DC; --pink:#E8287A; --pink-soft:#FDE2EE; --violet:#6D28D9; --violet-soft:#EDE4FD;
+  --blue:#2563EB; --blue-soft:#E0EAFE; --cyan:#0891B2; --cyan-soft:#D9F4FA; --amber:#D97706; --amber-soft:#FEF0D2;
+  --ok:#15803D; --ok-soft:#DCFCE7; --danger:#DC2626; --danger-soft:#FEE2E2;
+  --bs-body-bg:var(--bg); --bs-body-color:var(--ink); --bs-border-color:var(--rule);
+  --bs-body-font-family:'Ubuntu',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+  --bs-font-monospace:'Ubuntu Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+body{line-height:1.6}
+h1,h2,h3{font-weight:700;letter-spacing:-.01em;line-height:1.15}
+h2{font-size:1.4rem}
+code{color:var(--violet);background:var(--violet-soft);padding:.05em .3em;border-radius:4px;font-size:.98em}
+.muted{color:var(--muted)} .tnum{font-variant-numeric:tabular-nums}
+.btn{font-weight:500;border-radius:999px;padding-left:1rem;padding-right:1rem}
+.btn-hot{background:var(--pink);color:#fff;border:0} .btn-hot:hover,.btn-hot:focus{background:#C81E66;color:#fff}
+.btn-soft{background:#fff;color:var(--ink);border:1.5px solid var(--rule)} .btn-soft:hover{border-color:var(--pink);color:var(--pink)}
+.btn:focus-visible,.form-control:focus,.form-select:focus{outline:3px solid var(--blue);outline-offset:1px;box-shadow:none;border-color:var(--blue)}
+.topnav{background:#1A1033}
+.topnav a{color:#fff;text-decoration:none;font-weight:700}
+.topnav span{color:#D8D0EE}
+.hero{background:linear-gradient(115deg,#1A1033 0%,#3B1366 40%,#B0174F 75%,#FF5A1F 100%);color:#fff;border-radius:0 0 24px 24px;padding:2.4rem 0 2rem}
+.hero h1{font-size:clamp(1.9rem,4vw,2.8rem)}
+.hero p{color:#F3E8FF;max-width:62ch}
+.panel{background:#fff;border:1.5px solid var(--rule);border-radius:16px;padding:1.1rem 1.2rem}
+.panel-title{font-weight:700;margin-bottom:.5rem}
+.bar{position:sticky;top:0;z-index:20;background:linear-gradient(90deg,#1A1033,#3B1366);color:#fff;border-radius:0 0 14px 14px;padding:.5rem .9rem;display:flex;flex-wrap:wrap;gap:.4rem 1.2rem;align-items:center;font-size:.9rem}
+.bar .clock{font-weight:700;font-size:1.15rem;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.12);border-radius:999px;padding:0 .7rem}
+.bar .clock.low{background:var(--danger)}
+.bar .prog{flex:1;min-width:140px;height:8px;background:#3A2E5C;border-radius:4px;overflow:hidden}
+.bar .prog i{display:block;height:100%;background:linear-gradient(90deg,var(--spark),var(--pink))}
+.part{margin-top:1.6rem}
+.part-h{display:flex;justify-content:space-between;align-items:baseline;gap:.5rem;margin-bottom:.8rem}
+.part-h h2{background:linear-gradient(90deg,var(--spark),var(--pink),var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.part-h span{font-weight:700;color:#fff;background:var(--violet);border-radius:999px;padding:.1rem .7rem;font-size:.85rem}
+.task{background:#fff;border:1.5px solid var(--rule);border-radius:14px;padding:.9rem 1rem;margin-bottom:.8rem;border-left:6px solid var(--c,var(--violet))}
+.task-h{display:flex;justify-content:space-between;gap:.5rem;font-weight:700;margin-bottom:.35rem}
+.task-h .mk{font-weight:500;color:var(--muted);white-space:nowrap}
+.task p{margin-bottom:.45rem}
+.data{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.5rem}
+.data div{border-radius:12px;padding:.45rem .65rem;background:var(--cs,var(--violet-soft))}
+.data b{display:block;font-size:1.08rem;font-variant-numeric:tabular-nums}
+.data small{color:var(--muted)}
+.console{background:#150F2B;color:#E7E2F4;border-radius:14px;padding:.8rem .9rem;font-family:'Ubuntu Mono',monospace;font-size:.86rem;white-space:pre;overflow:auto;max-height:340px;margin-top:.6rem}
+.console .dim{color:#9C93B8} .console .hi{color:#FF9EC7;font-weight:700} .console .ok{color:#8EE6A3}
+.runrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.5rem;align-items:end}
+.runs{width:100%;font-size:.86rem;border-collapse:collapse}
+.runs th{border-bottom:2px solid var(--ink);padding:.2rem .35rem;text-align:left}
+.runs td{border-bottom:1px dashed var(--rule);padding:.25rem .35rem}
+.check{display:inline-block;font-size:.78rem;font-weight:700;border-radius:999px;padding:0 8px}
+.check.yes{background:var(--ok-soft);color:var(--ok)} .check.no{background:#EFEAF5;color:var(--muted)}
+.mcq label{display:block;border:1.5px solid var(--rule);border-radius:10px;padding:.35rem .6rem;margin:.3rem 0;cursor:pointer;background:#fff}
+.mcq input{margin-right:.5rem}
+.mcq label:has(input:checked){border-color:var(--pink);background:var(--pink-soft)}
+.inline-in{max-width:260px}
+.ops{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.5rem}
+.ops>div{border:1.5px solid var(--rule);border-radius:10px;padding:.4rem .55rem;background:#fff}
+.ops code{display:inline-block;margin-bottom:.3rem}
+.result{border-radius:18px;background:#fff;padding:1.3rem 1.4rem;border:0;box-shadow:0 10px 30px rgba(26,16,51,.12)}
+.score{font-size:3rem;font-weight:700;line-height:1;background:linear-gradient(90deg,var(--spark),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+.breakdown{width:100%;font-size:.9rem;border-collapse:collapse}
+.breakdown td,.breakdown th{border-bottom:1px dashed var(--rule);padding:.3rem .4rem;text-align:left}
+.breakdown td.r{text-align:right;font-variant-numeric:tabular-nums}
+.code-out{font-family:'Ubuntu Mono',monospace;font-size:.82rem;word-break:break-all;background:#FFFBF7;border:1px solid var(--rule);border-radius:10px;padding:.5rem .6rem;max-height:120px;overflow:auto}
+.warnbox{border-left:4px solid var(--amber);background:var(--amber-soft);padding:.5rem .8rem;border-radius:0 10px 10px 0}
+.vt{width:100%;font-size:.88rem;border-collapse:collapse;background:#fff}
+.vt th{border-bottom:2px solid var(--ink);padding:.3rem .4rem;text-align:left}
+.vt td{border-bottom:1px dashed var(--rule);padding:.3rem .4rem;vertical-align:top}
+.bad{color:var(--danger);font-weight:700}
+@media print{ .no-print,.topnav{display:none!important} body{background:#fff} .result{box-shadow:none;border:1px solid #000} }
+</style>
+</head>
+<body>
+<nav class="topnav no-print"><div class="container d-flex justify-content-between align-items-center py-2 flex-wrap gap-2"><a href="index.html">← Spark simulator</a><span>Lab 4.2 graded activity</span></div></nav>
+<main id="app"></main>
+
+<script>
+(function(){
+"use strict";
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=x=>Number(x).toLocaleString('en-US');
+const DURATION=40*60*1000, STORE='sp42_activity';
+
+/* ---------- personal values from the roll number ---------- */
+function hash32(str){ let h=0x811c9dc5; for(const ch of str){ h^=ch.charCodeAt(0); h=Math.imul(h,0x01000193); } return h>>>0; }
+function rng(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const normRoll=r=>String(r||'').trim().toUpperCase().replace(/\s+/g,'');
+const TRANS=['map','filter','groupBy','join','select','withColumn','reduceByKey','distinct','orderBy','union'];
+const ACTS=['count','show','collect','take','write.parquet','takeOrdered','first','saveAsTextFile'];
+const NARROW=['map','filter','select','withColumn','union','coalesce'];
+const WIDE=['groupByKey','reduceByKey','join (sort-merge)','distinct','repartition','orderBy'];
+function params(roll){
+  const r=rng(hash32('sp42|'+normRoll(roll))), pick=a=>a[Math.floor(r()*a.length)], int=(a,b)=>a+Math.floor(r()*(b-a+1));
+  const N=int(1200,2600)*1000+int(0,999), H=pick([120,150,160,180,200,240,250]);
+  const bytes=N*170+int(0,N*3), M=Math.ceil(bytes/134217728);
+  const P=pick([4,6,8,12,16]), SALT=pick([4,6,8,10,12,16]);
+  const N2=int(800,1200)*1000+int(0,999), hot=int(0,H-1), share=int(50,75);
+  const sh=a=>{ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(r()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; };
+  const c1=sh([...sh(TRANS).slice(0,3).map(t=>[t,'t']),...sh(ACTS).slice(0,3).map(t=>[t,'a'])]);
+  const c2=sh([...sh(NARROW).slice(0,2).map(t=>[t,'n']),...sh(WIDE).slice(0,2).map(t=>[t,'w'])]);
+  return {N,H,bytes,M,P,SALT,N2,hot,share,hotRows:Math.round(N2*share/100),c1,c2};
+}
+const hn=i=>'host'+String(i).padStart(3,'0');
+
+/* ---------- console model ---------- */
+function model(P,cfg){
+  const r={stages:2,exch:1,tasks:[],shuffle:0,time:0,result:''};
+  if(cfg.kind==='rbk'){ r.shuffle=P.M*P.H*16+P.M*64; r.time=3+P.N/190000; r.tasks=[...Array(P.M)].map(()=>+(r.time*.8).toFixed(1)); r.result='top host by total bytes computed'; }
+  else if(cfg.kind==='gbk'){ r.shuffle=P.N*8+P.M*64; r.time=3+P.N/135000; r.tasks=[...Array(P.M)].map(()=>+(r.time*.75).toFixed(1)); r.result='same totals as reduceByKey'; }
+  else if(cfg.kind==='df'){ r.shuffle=P.M*P.H*20; r.time=1.5+P.N/480000; r.tasks=[...Array(P.M)].map(()=>+(r.time*.8).toFixed(1)); r.result='same totals, Exchange hashpartitioning(host, '+cfg.parts+')'; }
+  else {
+    const parts=cfg.parts, others=(P.N2-P.hotRows)/parts;
+    if(cfg.kind==='join-auto'||cfg.kind==='join-bc'){ r.stages=3; r.exch=1; r.tasks=[+(0.4+P.N2/500000).toFixed(1)]; r.shuffle=P.H*40; r.join='BroadcastHashJoin'; }
+    else if(cfg.kind==='join-smj'){ r.stages=4; r.exch=2; r.tasks=[...Array(parts)].map((_,i)=>+(0.1+(others+(i===P.hot%parts?P.hotRows:0))/120000).toFixed(2)); r.shuffle=P.N2*12; r.join='SortMergeJoin'; }
+    else { const s=cfg.salt, spread=Math.min(s,parts); r.stages=4; r.exch=2; r.tasks=[...Array(parts)].map((_,i)=>+(0.1+(others+(i<spread?P.hotRows/spread:0))/120000).toFixed(2)); r.shuffle=P.N2*13; r.join='SortMergeJoin on salted key'; r.smallRows=P.H*s; }
+    r.time=r.tasks.reduce((a,b)=>Math.max(a,b),0)+(r.join==='BroadcastHashJoin'?0.6:2.1);
+  }
+  const s=[...r.tasks].sort((a,b)=>a-b); r.median=s[Math.floor((s.length-1)/2)]; r.max=s[s.length-1]; r.min=s[0];
+  return r;
+}
+const KINDS={rbk:'RDD reduceByKey (total bytes per host)',gbk:'RDD groupByKey + mapValues(sum)',df:'DataFrame groupBy("host").agg(sum)','join-auto':'Join skewed × hosts (default settings)','join-smj':'Join skewed × hosts (auto-broadcast OFF, sort-merge)','join-bc':'Join skewed × broadcast(hosts)','join-salt':'Salted join skewed × hosts'};
+function consoleText(P,cfg,m){
+  const L=[`Job finished in ${m.time.toFixed(1)} s`,`Stages: ${m.stages}   Exchanges (shuffles): ${m.exch}`,`Shuffle write: ${m.shuffle} bytes`];
+  if(m.join) L.push(`Join strategy in plan: ${m.join}`);
+  if(m.smallRows) L.push(`Small side after salting: ${m.smallRows} rows`);
+  L.push(`${cfg.kind.startsWith('join')?'Join stage':'First stage'}: ${m.tasks.length} task${m.tasks.length>1?'s':''}`,`  task durations (s): ${m.tasks.map(x=>x.toFixed(2)).join(', ')}`,`  min ${m.min.toFixed(2)} s · median ${m.median.toFixed(2)} s · max ${m.max.toFixed(2)} s`,`Result: ${m.result||'department totals identical to every other join strategy'}`);
+  return L.join('\n');
+}
+
+/* ---------- answer key and scoring ---------- */
+function expected(P){
+  const rbk=model(P,{kind:'rbk'}), gbk=model(P,{kind:'gbk'}), smj=model(P,{kind:'join-smj',parts:P.P}), salt=model(P,{kind:'join-salt',parts:P.P,salt:P.SALT});
+  return {B1:rbk.shuffle,B2:gbk.shuffle,B3:Math.round(gbk.shuffle/rbk.shuffle),B4:+(smj.max/smj.median).toFixed(1),B5:P.P,B6:1,
+    C1:P.c1.map(x=>x[1]),C2:P.c2.map(x=>x[1]),C3a:P.H*P.SALT,C3b:P.hotRows/P.SALT,C4a:'b',C4b:'c',C5:'a'};
+}
+const REQ={A1:()=>({kind:'rbk'}),A2:()=>({kind:'gbk'}),A3:P=>({kind:'join-smj',parts:P.P}),A4:P=>({kind:'join-salt',parts:P.P,salt:P.SALT})};
+const same=(a,b)=>a.kind===b.kind&&(b.parts==null||+a.parts===+b.parts)&&(b.salt==null||+a.salt===+b.salt);
+const num=v=>{ const x=parseFloat(String(v==null?'':v).replace(/,/g,'').trim()); return isNaN(x)?null:x; };
+function score(roll,ans,runs){
+  const P=params(roll), E=expected(P), rows=[]; const add=(id,label,max,got)=>rows.push({id,label,max,got:Math.min(max,got)});
+  const ran=c=>(runs||[]).some(r=>same(r,c));
+  add('A1','reduceByKey run performed',1,ran(REQ.A1())?1:0);
+  add('A2','groupByKey run performed',1,ran(REQ.A2())?1:0);
+  add('A3','Skewed sort-merge join performed (correct partitions)',1,ran(REQ.A3(P))?1:0);
+  add('A4','Salted join performed (correct salt and partitions)',1,ran(REQ.A4(P))?1:0);
+  add('B1','Shuffle write, reduceByKey',1,num(ans.B1)===E.B1?1:0);
+  add('B2','Shuffle write, groupByKey',1,num(ans.B2)===E.B2?1:0);
+  add('B3','How many times larger',1,num(ans.B3)!==null&&Math.abs(num(ans.B3)-E.B3)<=1?1:0);
+  add('B4','Skew: max ÷ median task time',1,num(ans.B4)!==null&&Math.abs(num(ans.B4)-E.B4)<=0.15?1:0);
+  add('B5','Tasks in the join stage',1,num(ans.B5)===E.B5?1:0);
+  add('B6','Exchanges in the DataFrame aggregation',1,num(ans.B6)===E.B6?1:0);
+  add('C1','Transformation or action',3,E.C1.reduce((s,v,i)=>s+(ans['C1_'+i]===v?0.5:0),0));
+  add('C2','Narrow or wide',2,E.C2.reduce((s,v,i)=>s+(ans['C2_'+i]===v?0.5:0),0));
+  add('C3','Salting arithmetic',2,(num(ans.C3a)===E.C3a?1:0)+(num(ans.C3b)!==null&&Math.abs(num(ans.C3b)-E.C3b)<=E.C3b*0.02?1:0));
+  add('C4','coalesce and cache',2,(ans.C4a===E.C4a?1:0)+(ans.C4b===E.C4b?1:0));
+  add('C5','Why RDD code is not optimised',1,ans.C5===E.C5?1:0);
+  return {rows,total:rows.reduce((s,r)=>s+r.got,0),E,P};
+}
+
+/* ---------- codes ---------- */
+const b64e=s=>btoa(unescape(encodeURIComponent(s))), b64d=s=>decodeURIComponent(escape(atob(s)));
+function makeCode(st){ const body={v:1,n:st.name,r:normRoll(st.roll),t0:st.t0,t1:st.t1,att:st.attempt,runs:st.runs,a:st.ans}; const json=JSON.stringify(body); return 'SP42-'+b64e(json)+'-'+hash32(json).toString(36); }
+function readCode(code){ const m=String(code).trim().match(/^SP42-([A-Za-z0-9+/=]+)-([0-9a-z]+)$/); if(!m) throw new Error('not a Lab 4.2 result code'); let json; try{ json=b64d(m[1]); }catch(e){ throw new Error('the code has been changed or is incomplete'); } if(hash32(json).toString(36)!==m[2]) throw new Error('the code has been changed or is incomplete'); return JSON.parse(json); }
+
+/* ---------- state ---------- */
+let st=null, tick=null;
+const save=()=>{ try{ localStorage.setItem(STORE,JSON.stringify(st)); }catch(e){} };
+const load=()=>{ try{ return JSON.parse(localStorage.getItem(STORE)||'null'); }catch(e){ return null; } };
+
+function viewStart(prev){
+  $('#app').innerHTML=`<div class="hero"><div class="container"><h1>Lab 4.2 graded activity: Spark</h1><p class="mt-2 mb-0">Run Spark jobs on <strong>your own data</strong>, read the shuffle sizes and task times, and reason about laziness, shuffles and skewed joins. Every roll number gets different numbers.</p></div></div>
+  <div class="container"><div class="row g-4 mt-1">
+    <div class="col-lg-7"><div class="panel"><div class="panel-title">Rules</div><ul class="mb-0">
+      <li>Individual work. <strong>20 marks</strong>, <strong>40 minutes</strong>.</li>
+      <li>You may open the <a href="index.html">Spark simulator</a> and your notes.</li>
+      <li>Progress is saved in this browser; if the page reloads, open it again on the same device.</li>
+      <li>When time runs out, your answers are submitted automatically.</li>
+      <li>At the end you get a <strong>result code</strong>. Send it to your teacher exactly as shown.</li></ul></div></div>
+    <div class="col-lg-5"><div class="panel">
+      ${prev?`<div class="warnbox mb-3">This browser already has a submitted attempt for <strong>${esc(prev.name)} (${esc(prev.roll)})</strong>. <a href="#" id="showPrev">Show that result</a>. Starting again creates attempt ${prev.attempt+1}, which your teacher will see.</div>`:''}
+      <div class="panel-title">Start</div>
+      <label class="form-label" for="nm">Full name</label><input class="form-control mb-2" id="nm" autocomplete="name" placeholder="e.g. Iqra">
+      <label class="form-label" for="rl">Roll number</label><input class="form-control mb-1" id="rl" autocomplete="off" placeholder="e.g. 22BSCYS026">
+      <div class="form-text mb-2">Exactly as on the class list. It decides your personal values.</div>
+      <div class="form-check mb-3"><input class="form-check-input" type="checkbox" id="own"><label class="form-check-label" for="own">I will complete this activity on my own.</label></div>
+      <div class="text-danger small mb-2" id="err" role="alert"></div>
+      <button class="btn btn-hot w-100 py-2" id="go">Start the activity</button>
+    </div></div></div>
+    <p class="mt-4 small muted">Teacher? <a href="#verify">Verify result codes</a>.</p></div>`;
+  if(prev) $('#showPrev').addEventListener('click',e=>{ e.preventDefault(); st=prev; viewResult(); });
+  $('#go').addEventListener('click',()=>{ const name=$('#nm').value.trim(), roll=normRoll($('#rl').value);
+    if(name.length<3){ $('#err').textContent='Please enter your full name.'; return; }
+    if(!/^[0-9]{2}[A-Z]{2,8}[0-9]{2,4}$/.test(roll)){ $('#err').textContent='Please enter your roll number in the class format, for example 22BSCYS026.'; return; }
+    if(!$('#own').checked){ $('#err').textContent='Please confirm you will work on your own.'; return; }
+    st={name,roll,t0:Date.now(),t1:null,attempt:prev?prev.attempt+1:1,runs:[],ans:{},log:'',submitted:false}; save(); viewActivity(); });
+}
+
+function viewActivity(){
+  const P=params(st.roll), rr=rng(hash32('order|'+normRoll(st.roll)));
+  const shuffle=a=>{ const x=a.slice(); for(let i=x.length-1;i>0;i--){ const j=Math.floor(rr()*(i+1)); [x[i],x[j]]=[x[j],x[i]]; } return x; };
+  const radios=(name,opts)=>`<div class="mcq">${shuffle(opts).map(([v,t])=>`<label><input type="radio" name="${name}" value="${v}" ${st.ans[name]===v?'checked':''}>${t}</label>`).join('')}</div>`;
+  const inp=(id,ph)=>`<input class="form-control inline-in tnum" data-a="${id}" value="${esc(st.ans[id]||'')}" placeholder="${ph||'your answer'}" inputmode="decimal">`;
+  const sel=(id,opts)=>`<select class="form-select form-select-sm" data-a="${id}"><option value="">choose…</option>${opts.map(([v,t])=>`<option value="${v}" ${st.ans[id]===v?'selected':''}>${t}</option>`).join('')}</select>`;
+  $('#app').innerHTML=`<div class="container">
+  <div class="bar no-print"><span><strong>${esc(st.name)}</strong> · ${esc(st.roll)}${st.attempt>1?' · attempt '+st.attempt:''}</span><span class="clock" id="clock">40:00</span><div class="prog"><i id="prog" style="width:0%"></i></div><button class="btn btn-sm btn-light" id="submitTop">Submit</button></div>
+
+  <div class="part"><div class="part-h"><h2 class="mb-0">Your data</h2><span>unique to ${esc(st.roll)}</span></div>
+    <div class="data">
+      <div style="--cs:var(--spark-soft)"><small>events file</small><b>${fmt(P.N)} rows</b><small>${(P.bytes/1048576).toFixed(1)} MB, read as ${P.M} partitions</small></div>
+      <div style="--cs:var(--cyan-soft)"><small>Distinct hosts</small><b>${P.H}</b><small>the hosts table has ${P.H} rows</small></div>
+      <div style="--cs:var(--pink-soft)"><small>Skewed file</small><b>${fmt(P.N2)} rows</b><small>${hn(P.hot)}: ${fmt(P.hotRows)} rows (${P.share}%)</small></div>
+      <div style="--cs:var(--violet-soft)"><small>Your shuffle partitions</small><b>${P.P}</b><small>spark.sql.shuffle.partitions</small></div>
+      <div style="--cs:var(--amber-soft)"><small>Your salt</small><b>SALT = ${P.SALT}</b><small>for the salted join</small></div>
+    </div>
+  </div>
+
+  <div class="part"><div class="part-h"><h2 class="mb-0">Part A: perform the runs</h2><span>4 marks</span></div>
+    <div class="task" style="--c:var(--spark)"><p class="mb-2">Use the Spark console below to perform these runs. Each is ticked automatically when the settings match exactly.</p>
+      <table class="runs"><tr><th>Task</th><th>Job</th><th>Settings</th><th>Done</th></tr>
+        <tr><td><b>A1</b></td><td>RDD reduceByKey</td><td>none</td><td><span class="check no" id="ckA1">not yet</span></td></tr>
+        <tr><td><b>A2</b></td><td>RDD groupByKey</td><td>none</td><td><span class="check no" id="ckA2">not yet</span></td></tr>
+        <tr><td><b>A3</b></td><td>Join, auto-broadcast OFF (sort-merge)</td><td>${P.P} shuffle partitions</td><td><span class="check no" id="ckA3">not yet</span></td></tr>
+        <tr><td><b>A4</b></td><td>Salted join</td><td>${P.P} shuffle partitions, SALT ${P.SALT}</td><td><span class="check no" id="ckA4">not yet</span></td></tr></table></div>
+    <div class="task" style="--c:var(--pink)"><div class="task-h">Spark console <span class="mk">pyspark</span></div>
+      <div class="runrow">
+        <div style="grid-column:span 2"><label class="form-label small" for="cK">Job</label><select class="form-select" id="cK">${Object.entries(KINDS).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></div>
+        <div><label class="form-label small" for="cP">Shuffle partitions</label><input class="form-control" type="number" id="cP" min="1" max="64" value="200"></div>
+        <div><label class="form-label small" for="cS">SALT (salted join only)</label><input class="form-control" type="number" id="cS" min="2" max="32" value="8"></div>
+        <div><button class="btn btn-hot w-100" id="cRun">Run</button></div>
+      </div>
+      <div class="console" id="console" aria-live="polite">${st.log||'<span class="dim">Output appears here: stages, shuffle write, and task durations.</span>'}</div></div>
+  </div>
+
+  <div class="part"><div class="part-h"><h2 class="mb-0">Part B: read the results</h2><span>6 marks</span></div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B1 <span class="mk">1 mark</span></div><p>From A1: the shuffle write in bytes.</p>${inp('B1')}</div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B2 <span class="mk">1 mark</span></div><p>From A2: the shuffle write in bytes.</p>${inp('B2')}</div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B3 <span class="mk">1 mark</span></div><p>groupByKey shuffled how many times more bytes than reduceByKey? Round to a whole number.</p>${inp('B3')}</div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B4 <span class="mk">1 mark</span></div><p>From A3: the slowest task's duration divided by the median, to one decimal place.</p>${inp('B4','e.g. 7.4')}</div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B5 <span class="mk">1 mark</span></div><p>From A3: how many tasks ran in the join stage?</p>${inp('B5')}</div>
+    <div class="task" style="--c:var(--cyan)"><div class="task-h">B6 <span class="mk">1 mark</span></div><p>Run the DataFrame aggregation in the console. How many Exchanges (shuffles) does it have?</p>${inp('B6')}</div>
+  </div>
+
+  <div class="part"><div class="part-h"><h2 class="mb-0">Part C: reason it out</h2><span>10 marks</span></div>
+    <div class="task" style="--c:var(--violet)"><div class="task-h">C1 <span class="mk">3 marks</span></div><p>Is each operation a <strong>transformation</strong> (builds the plan) or an <strong>action</strong> (runs it)?</p>
+      <div class="ops">${P.c1.map((x,i)=>`<div><code>${x[0]}</code>${sel('C1_'+i,[['t','transformation'],['a','action']])}</div>`).join('')}</div></div>
+    <div class="task" style="--c:var(--violet)"><div class="task-h">C2 <span class="mk">2 marks</span></div><p>Is each operation <strong>narrow</strong> (no data moves between partitions) or <strong>wide</strong> (a shuffle)?</p>
+      <div class="ops">${P.c2.map((x,i)=>`<div><code>${x[0]}</code>${sel('C2_'+i,[['n','narrow'],['w','wide']])}</div>`).join('')}</div></div>
+    <div class="task" style="--c:var(--violet)"><div class="task-h">C3 <span class="mk">2 marks</span></div><p>For your salted join (SALT = ${P.SALT}, hosts table of ${P.H} rows, ${hn(P.hot)} with ${fmt(P.hotRows)} rows):</p>
+      <div class="row g-2"><div class="col-sm-6"><label class="form-label small">How many rows does the small side have after salting?</label>${inp('C3a')}</div><div class="col-sm-6"><label class="form-label small">About how many of ${hn(P.hot)}'s rows share one salted key?</label>${inp('C3b')}</div></div></div>
+    <div class="task" style="--c:var(--violet)"><div class="task-h">C4 <span class="mk">2 marks</span></div><p>You have 8 partitions and want to write 4 files. Which is right?</p>
+      ${radios('C4a',[['a','repartition(4), because only repartition can reduce partitions'],['b','coalesce(4), because it reduces partitions without a shuffle'],['c','coalesce(4), because it always shuffles to balance the files'],['d','Neither: the number of files always equals the number of input blocks']])}
+      <p class="mt-2 mb-1">You call <code>df.cache()</code> and nothing else. What is in memory?</p>
+      ${radios('C4b',[['a','The whole DataFrame, cached immediately'],['b','Only the schema'],['c','Nothing yet: cache is lazy, the next action fills it'],['d','Half of it, until you call count() twice']])}</div>
+    <div class="task" style="--c:var(--violet)"><div class="task-h">C5 <span class="mk">1 mark</span></div><p>Why does Spark not move the filter earlier in an RDD pipeline the way it does for a DataFrame?</p>
+      ${radios('C5',[['a','RDD steps are Python functions that Spark cannot look inside, so it must run them as written'],['b','RDDs do not support filter'],['c','Catalyst is switched off by default'],['d','RDDs are always cached, so order does not matter']])}</div>
+  </div>
+  <div class="text-center my-4 no-print"><button class="btn btn-hot btn-lg px-5" id="submitBottom">Submit my answers</button></div></div>`;
+
+  document.querySelectorAll('[data-a]').forEach(el=>el.addEventListener(el.tagName==='SELECT'?'change':'input',()=>{ st.ans[el.dataset.a]=el.value; save(); progress(); }));
+  document.querySelectorAll('.mcq input').forEach(el=>el.addEventListener('change',()=>{ st.ans[el.name]=el.value; save(); progress(); }));
+  $('#cRun').addEventListener('click',()=>{
+    const kind=$('#cK').value, parts=Math.max(1,Math.min(64,parseInt($('#cP').value)||200)), salt=Math.max(2,Math.min(32,parseInt($('#cS').value)||8));
+    const cfg={kind}; if(kind.startsWith('join')||kind==='df') cfg.parts=parts; if(kind==='join-salt') cfg.salt=salt;
+    const m=model(P,cfg);
+    const head=`<span class="hi">>>> ${esc(KINDS[kind])}${cfg.parts?`   [shuffle partitions = ${cfg.parts}]`:''}${cfg.salt?`   [SALT = ${cfg.salt}]`:''}</span>`;
+    st.log=(st.runs.length?st.log+'\n\n':'')+head+'\n'+esc(consoleText(P,cfg,m)); st.runs.push(cfg); save();
+    const c=$('#console'); c.innerHTML=st.log; c.scrollTop=c.scrollHeight; marks(); });
+  ['#submitTop','#submitBottom'].forEach(s=>$(s).addEventListener('click',()=>{ if(confirm('Submit now? You cannot change your answers afterwards.')) submit(); }));
+  marks(); progress(); clock(); const c=$('#console'); c.scrollTop=c.scrollHeight;
+}
+function marks(){ const P=params(st.roll); ['A1','A2','A3','A4'].forEach(k=>{ const ok=st.runs.some(r=>same(r,REQ[k](P))); const el=$('#ck'+k); if(el){ el.className='check '+(ok?'yes':'no'); el.textContent=ok?'done':'not yet'; } }); }
+function progress(){ const keys=['B1','B2','B3','B4','B5','B6','C3a','C3b','C4a','C4b','C5',...[0,1,2,3,4,5].map(i=>'C1_'+i),...[0,1,2,3].map(i=>'C2_'+i)]; const n=keys.filter(k=>String(st.ans[k]||'').trim()).length; const p=$('#prog'); if(p) p.style.width=(n/keys.length*100)+'%'; }
+function clock(){ clearInterval(tick); const upd=()=>{ const left=st.t0+DURATION-Date.now(), el=$('#clock'); if(!el) return; if(left<=0){ clearInterval(tick); el.textContent='00:00'; submit(true); return; } el.textContent=String(Math.floor(left/60000)).padStart(2,'0')+':'+String(Math.floor(left%60000/1000)).padStart(2,'0'); el.classList.toggle('low',left<5*60000); }; upd(); tick=setInterval(upd,1000); }
+function submit(auto){ clearInterval(tick); st.t1=Math.min(Date.now(),st.t0+DURATION); st.submitted=true; st.auto=!!auto; save(); viewResult(); window.scrollTo(0,0); }
+
+function viewResult(){
+  const sc=score(st.roll,st.ans,st.runs), code=makeCode(st), mins=Math.round((st.t1-st.t0)/60000);
+  $('#app').innerHTML=`<div class="container"><div class="result mt-4">
+    <div class="d-flex flex-wrap justify-content-between gap-3 align-items-start"><div><div class="muted">Lab 4.2 graded activity: Spark</div><h2 class="mt-1 mb-0">${esc(st.name)}</h2><div class="muted">${esc(normRoll(st.roll))}${st.attempt>1?' · attempt '+st.attempt:''} · submitted ${new Date(st.t1).toLocaleString()} · ${mins} min${st.auto?' · auto-submitted at the time limit':''}</div></div>
+    <div class="text-end"><div class="score">${sc.total} / 20</div><div class="muted">${Math.round(sc.total/20*100)}%</div></div></div>
+    <table class="breakdown mt-3"><tr><th>Item</th><th class="r">Marks</th></tr>${sc.rows.map(r=>`<tr><td>${r.id}. ${r.label}</td><td class="r">${r.got} / ${r.max}</td></tr>`).join('')}</table>
+    <div class="mt-3"><div class="panel-title mb-1">Your result code</div><div class="code-out" id="code">${code}</div>
+      <div class="d-flex flex-wrap gap-2 mt-2 no-print"><button class="btn btn-hot" id="copy">Copy result code</button><button class="btn btn-soft" onclick="window.print()">Print or save as PDF</button></div>
+      <p class="small muted mt-2 mb-0">Send this code to your teacher exactly as shown. It contains your answers and runs; your teacher re-checks the marks from it.</p></div></div>
+    <p class="small muted mt-3 no-print">Correct answers are not shown, so classmates with other roll numbers cannot copy them.</p></div>`;
+  $('#copy').addEventListener('click',async()=>{ try{ await navigator.clipboard.writeText(code); $('#copy').textContent='Copied'; }catch(e){ const r=document.createRange(); r.selectNodeContents($('#code')); const s=getSelection(); s.removeAllRanges(); s.addRange(r); $('#copy').textContent='Selected: press Ctrl+C'; } });
+}
+function viewVerify(){
+  $('#app').innerHTML=`<div class="container"><h1 class="mt-4">Verify Lab 4.2 result codes</h1>
+  <p class="muted">Paste one or more codes, one per line. Each is decoded and marked again from the roll number, answers and runs, so an edited score cannot pass. Altered or incomplete codes are flagged.</p>
+  <textarea class="form-control" id="codes" rows="7" placeholder="SP42-…"></textarea>
+  <div class="d-flex gap-2 mt-2"><button class="btn btn-hot" id="check">Check codes</button><button class="btn btn-soft" id="csv" disabled>Copy results as CSV</button><a class="btn btn-soft" href="activity.html">Back</a></div><div id="vout" class="mt-3"></div></div>`;
+  let last=[];
+  $('#check').addEventListener('click',()=>{ const lines=$('#codes').value.split(/\s+/).map(s=>s.trim()).filter(Boolean); last=[];
+    const rows=lines.map((c,i)=>{ try{ const b=readCode(c), sc=score(b.r,b.a,b.runs), mins=b.t1&&b.t0?Math.round((b.t1-b.t0)/60000):'', over=b.t1-b.t0>DURATION+60000; const rec={name:b.n,roll:b.r,score:sc.total,attempt:b.att,mins,submitted:b.t1?new Date(b.t1).toLocaleString():''}; last.push(rec);
+      return `<tr><td>${i+1}</td><td>${esc(b.n)}</td><td>${esc(b.r)}</td><td><b>${sc.total}</b> / 20</td><td>${b.att>1?'<span class="bad">'+b.att+'</span>':b.att}</td><td>${mins} min${over?' <span class="bad">over limit</span>':''}</td><td>${rec.submitted}</td><td class="small">${sc.rows.map(r=>`${r.id} ${r.got}/${r.max}`).join(', ')}</td></tr>`; }
+      catch(e){ return `<tr><td>${i+1}</td><td colspan="7" class="bad">Invalid code: ${esc(e.message)}</td></tr>`; } });
+    $('#vout').innerHTML=rows.length?`<div class="table-responsive"><table class="vt"><tr><th>#</th><th>Name</th><th>Roll</th><th>Score</th><th>Attempt</th><th>Time</th><th>Submitted</th><th>Breakdown</th></tr>${rows.join('')}</table></div>`:''; $('#csv').disabled=!last.length; });
+  $('#csv').addEventListener('click',async()=>{ const csv='Name,Roll,Score,Attempt,Minutes,Submitted\n'+last.map(r=>[r.name,r.roll,r.score,r.attempt,r.mins,r.submitted].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n'); try{ await navigator.clipboard.writeText(csv); $('#csv').textContent='CSV copied'; }catch(e){ alert(csv); } });
+}
+function route(){ if(location.hash==='#verify'){ clearInterval(tick); viewVerify(); return; } const saved=load(); if(saved&&!saved.submitted){ st=saved; if(Date.now()>st.t0+DURATION){ submit(true); return; } viewActivity(); return; } viewStart(saved&&saved.submitted?saved:null); }
+window.addEventListener('hashchange',route);
+window.__act={params,expected,score,model};
+route();
+})();
+</script>
+</body>
+</html>
